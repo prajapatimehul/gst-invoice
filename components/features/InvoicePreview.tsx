@@ -11,13 +11,13 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Invoice, BusinessInfo } from '@/types/invoice';
-import { generateInvoicePDF, downloadInvoicePDF } from '@/lib/pdfGeneratorExact';
+import { generateInvoicePDF, downloadInvoicePDF } from '@/lib/pdfGeneratorAdvanced';
 
 interface InvoicePreviewProps {
   invoice: Invoice | null;
   open: boolean;
   onClose: () => void;
-  businessInfo?: BusinessInfo;
+  businessInfo: BusinessInfo;
 }
 
 export function InvoicePreview({ invoice, open, onClose, businessInfo }: InvoicePreviewProps) {
@@ -56,7 +56,7 @@ export function InvoicePreview({ invoice, open, onClose, businessInfo }: Invoice
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-xl font-bold text-green-900 flex items-center gap-2">

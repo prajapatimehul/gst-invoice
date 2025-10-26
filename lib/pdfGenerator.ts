@@ -60,8 +60,8 @@ export function generateInvoicePDF(invoice: Invoice, businessInfo?: BusinessInfo
         business.service,
         business.hsn,
         '1',
-        `$${invoice.usdAmount.toFixed(2)}`,
-        `$${invoice.usdAmount.toFixed(2)}`
+        invoice.usdAmount ? `$${invoice.usdAmount.toFixed(2)}` : '-',
+        invoice.usdAmount ? `$${invoice.usdAmount.toFixed(2)}` : '-'
       ]
     ],
     theme: 'grid',
@@ -95,10 +95,12 @@ export function generateInvoicePDF(invoice: Invoice, businessInfo?: BusinessInfo
 
   doc.setFont('helvetica', 'bold');
   doc.text('Total (USD):', 130, taxTableY);
-  doc.text(`$${invoice.usdAmount.toFixed(2)}`, 170, taxTableY);
+  doc.text(invoice.usdAmount ? `$${invoice.usdAmount.toFixed(2)}` : '-', 170, taxTableY);
 
-  doc.text('Exchange Rate:', 130, taxTableY + 7);
-  doc.text(`₹${invoice.exchangeRate.toFixed(2)}`, 170, taxTableY + 7);
+  if (invoice.exchangeRate) {
+    doc.text('Exchange Rate:', 130, taxTableY + 7);
+    doc.text(`₹${invoice.exchangeRate.toFixed(2)}`, 170, taxTableY + 7);
+  }
 
   doc.text('Total (INR):', 130, taxTableY + 14);
   doc.text(`₹${invoice.inrAmount.toFixed(2)}`, 170, taxTableY + 14);

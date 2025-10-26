@@ -5,7 +5,7 @@ import { Download, FileText, DollarSign, Calendar } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Invoice, BusinessInfo } from '@/types/invoice';
-import { downloadInvoicePDF, downloadAllInvoices } from '@/lib/pdfGeneratorExact';
+import { downloadInvoicePDF, downloadAllInvoices } from '@/lib/pdfGeneratorAdvanced';
 import { InvoicePreview } from './InvoicePreview';
 
 interface InvoiceSummaryProps {
@@ -18,7 +18,7 @@ export function InvoiceSummary({ invoices, onReset, businessInfo }: InvoiceSumma
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  const totalUSD = invoices.reduce((sum, inv) => sum + inv.usdAmount, 0);
+  const totalUSD = invoices.reduce((sum, inv) => sum + (inv.usdAmount || 0), 0);
   const totalINR = invoices.reduce((sum, inv) => sum + inv.inrAmount, 0);
 
   const handleDownloadAll = () => {
@@ -116,9 +116,13 @@ export function InvoiceSummary({ invoices, onReset, businessInfo }: InvoiceSumma
                     {invoice.invoiceDate}
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">${invoice.usdAmount.toFixed(2)}</p>
+                    {invoice.usdAmount && (
+                      <p className="font-semibold">${invoice.usdAmount.toFixed(2)}</p>
+                    )}
                     <p className="text-sm text-muted-foreground">₹{invoice.inrAmount.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">@ ₹{invoice.exchangeRate.toFixed(4)}</p>
+                    {invoice.exchangeRate && (
+                      <p className="text-xs text-muted-foreground">@ ₹{invoice.exchangeRate.toFixed(4)}</p>
+                    )}
                   </div>
                 </div>
                 <Download className="h-5 w-5 ml-4 text-muted-foreground group-hover:text-primary transition-colors" />

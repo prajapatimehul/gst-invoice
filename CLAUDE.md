@@ -1,9 +1,9 @@
 # GST Invoice System - Project Guide
 
 ## Business Info
-- **Name**: MEHULKUMAR SHANTIBHAI PRAJAPATI
-- **GSTIN**: XX-XXXXX-XXXX-X-XX (Configure in Settings)
-- **LUT**: ADXXXXXXXXXXXXXXXXX (Export without IGST)
+- **Name**: EXAMPLE BUSINESS SERVICES PVT LTD
+- **GSTIN**: 24AABCE1234F1Z5 (Configure in Settings)
+- **LUT**: AD240101234567X (Export without IGST)
 - **Service**: IT Consulting (HSN/SAC: 998313)
 - **State**: Gujarat (Code: 24)
 

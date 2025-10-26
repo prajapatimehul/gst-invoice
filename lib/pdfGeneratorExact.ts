@@ -18,11 +18,18 @@ interface PDFBusinessInfo {
 
 // Convert BusinessInfo to PDFBusinessInfo
 function convertBusinessInfo(info: ImportedBusinessInfo): PDFBusinessInfo {
+  const addressParts = [
+    info.addressLine1 || '123, BUSINESS PARK',
+    info.addressLine2 || 'TECHNOLOGY HUB',
+  ].filter(Boolean);
+
+  const cityPincode = `${info.city || 'AHMEDABAD'} - ${info.pincode || '380001'}`;
+
   return {
     name: info.name,
-    address1: 'AAKARNI NO -15/116, KHALVAD VAS',
-    address2: 'PRAJAPATI VAS, JUNADEESA',
-    address3: 'BANASKANTHA',
+    address1: addressParts[0] || '',
+    address2: addressParts[1] || '',
+    address3: cityPincode,
     gstin: info.gstin,
     state: info.state,
     stateCode: info.stateCode,
@@ -41,14 +48,30 @@ export function generateInvoicePDFExact(invoice: Invoice, businessInfo?: Importe
 
   // Use provided business info or defaults
   const defaultInfo: ImportedBusinessInfo = {
-    name: 'MEHULKUMAR SHANTIBHAI PRAJAPATI',
-    gstin: 'XX-XXXXX-XXXX-X-XX',
-    lut: 'ADXXXXXXXXXXXXXXXXX',
-    service: 'IT Consulting and Support Services',
-    hsn: '998313',
+    name: 'EXAMPLE BUSINESS SERVICES PVT LTD',
+    gstin: '24AABCE1234F1Z5',
+    lut: 'AD240101234567X',
+    lutPeriod: {
+      from: '2024-04-01',
+      to: '2025-03-31',
+    },
+    addressLine1: '123, BUSINESS PARK',
+    addressLine2: 'TECHNOLOGY HUB',
+    city: 'AHMEDABAD',
+    pincode: '380001',
     state: 'Gujarat',
     stateCode: '24',
-    startingInvoiceNumber: 1
+    country: 'India',
+    service: 'IT Consulting and Support Services',
+    hsn: '998313',
+    startingInvoiceNumbers: {
+      GT: 1,
+      GRC: 1,
+      DT: 1,
+      G: 1,
+    },
+    signatureText: 'Authorised Signatory',
+    footerNote: 'This is a Computer Generated Invoice',
   };
 
   const info = convertBusinessInfo(businessInfo || defaultInfo);
@@ -333,11 +356,11 @@ export function generateInvoicePDFExact(invoice: Invoice, businessInfo?: Importe
       ],
       [
         {
-          content: invoice.usdAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          content: invoice.usdAmount ? invoice.usdAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-',
           styles: { fontSize: 8, fontStyle: 'bold' }
         },
         {
-          content: invoice.exchangeRate.toFixed(2),
+          content: invoice.exchangeRate ? invoice.exchangeRate.toFixed(2) : '-',
           styles: { fontSize: 8, fontStyle: 'bold' }
         },
         {
