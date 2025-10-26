@@ -10,8 +10,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Invoice, BusinessInfo } from '@/types/invoice';
-import { generateInvoicePDF, downloadInvoicePDF } from '@/lib/pdfGeneratorAdvanced';
+import { Invoice, BusinessInfo, InvoiceType } from '@/types/invoice';
+import { generateInvoicePDF as generateExactPDF, downloadInvoicePDF as downloadExactPDF } from '@/lib/pdfGeneratorExact';
+import { generateInvoicePDF as generateAdvancedPDF, downloadInvoicePDF as downloadAdvancedPDF } from '@/lib/pdfGeneratorAdvanced';
 
 interface InvoicePreviewProps {
   invoice: Invoice | null;
@@ -29,7 +30,10 @@ export function InvoicePreview({ invoice, open, onClose, businessInfo }: Invoice
       setLoading(true);
       // Generate PDF and create blob URL for preview
       try {
-        const pdf = generateInvoicePDF(invoice, businessInfo);
+        // Use exact PDF generator for GT-series (Upwork) invoices, advanced for others
+        const pdf = invoice.invoiceType === InvoiceType.GT
+          ? generateExactPDF(invoice, businessInfo)
+          : generateAdvancedPDF(invoice, businessInfo);
         const blob = pdf.output('blob');
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
@@ -52,7 +56,12 @@ export function InvoicePreview({ invoice, open, onClose, businessInfo }: Invoice
   if (!invoice) return null;
 
   const handleDownload = () => {
-    downloadInvoicePDF(invoice, businessInfo);
+    // Use exact PDF generator for GT-series (Upwork) invoices, advanced for others
+    if (invoice.invoiceType === InvoiceType.GT) {
+      downloadExactPDF(invoice, businessInfo);
+    } else {
+      downloadAdvancedPDF(invoice, businessInfo);
+    }
   };
 
   return (

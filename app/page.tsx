@@ -8,7 +8,8 @@ import { Settings } from '@/components/features/Settings';
 import { InvoiceTypeSelector, InvoiceTypeConfig } from '@/components/features/InvoiceTypeSelector';
 import { parseUpworkCSV, ParseOptions } from '@/lib/csvParser';
 import { groupByClientAndMonth, generateInvoiceNumbers, groupPlatformFees } from '@/lib/invoiceProcessor';
-import { downloadAllInvoices } from '@/lib/pdfGeneratorAdvanced';
+import { downloadAllInvoices as downloadAllExact } from '@/lib/pdfGeneratorExact';
+import { downloadAllInvoices as downloadAllAdvanced } from '@/lib/pdfGeneratorAdvanced';
 import { Invoice, BusinessInfo, InvoiceType, TransactionCategory } from '@/types/invoice';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -180,7 +181,12 @@ export default function Home() {
     }
 
     try {
-      downloadAllInvoices(invoices, businessInfo);
+      // Use exact PDF generator for GT-series invoices, advanced for others
+      if (selectedInvoiceType.type === InvoiceType.GT) {
+        downloadAllExact(invoices, businessInfo);
+      } else {
+        downloadAllAdvanced(invoices, businessInfo);
+      }
       toast.success(`Downloading ${invoices.length} invoice(s)`, {
         description: 'Check your downloads folder',
       });

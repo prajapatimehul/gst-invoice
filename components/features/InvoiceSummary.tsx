@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { Download, FileText, DollarSign, Calendar } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Invoice, BusinessInfo } from '@/types/invoice';
-import { downloadInvoicePDF, downloadAllInvoices } from '@/lib/pdfGeneratorAdvanced';
+import { Invoice, BusinessInfo, InvoiceType } from '@/types/invoice';
+import { downloadInvoicePDF as downloadExact, downloadAllInvoices as downloadAllExact } from '@/lib/pdfGeneratorExact';
+import { downloadInvoicePDF as downloadAdvanced, downloadAllInvoices as downloadAllAdvanced } from '@/lib/pdfGeneratorAdvanced';
 import { InvoicePreview } from './InvoicePreview';
 
 interface InvoiceSummaryProps {
@@ -22,7 +23,15 @@ export function InvoiceSummary({ invoices, onReset, businessInfo }: InvoiceSumma
   const totalINR = invoices.reduce((sum, inv) => sum + inv.inrAmount, 0);
 
   const handleDownloadAll = () => {
-    downloadAllInvoices(invoices, businessInfo);
+    // Check the invoice type from the first invoice (all should be the same type in a batch)
+    if (invoices.length > 0) {
+      const invoiceType = invoices[0].invoiceType;
+      if (invoiceType === InvoiceType.GT) {
+        downloadAllExact(invoices, businessInfo);
+      } else {
+        downloadAllAdvanced(invoices, businessInfo);
+      }
+    }
   };
 
   const handleInvoiceClick = (invoice: Invoice) => {
