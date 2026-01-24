@@ -38,8 +38,9 @@ export function parseUpworkCSV(
           const transactions: UpworkTransaction[] = [];
 
           results.data.forEach((row: any) => {
-            const type = row['Transaction Type'];
-            const summary = row['Transaction Summary'] || '';
+            // Handle both old and new Upwork CSV column naming conventions
+            const type = row['Transaction Type'] || row['Transaction type'];
+            const summary = row['Transaction Summary'] || row['Transaction summary'] || '';
 
             // Skip withdrawal and tax-related transactions
             if (SKIP_TYPES.includes(type)) {
@@ -82,7 +83,7 @@ export function parseUpworkCSV(
               transactionId: row['Transaction ID'] || row['ID'] || '',
               transactionType: type,
               transactionSummary: summary,
-              accountName: row['Agency'] || row['Team'] || row['Account Name'] || 'Unknown',
+              accountName: row['Agency'] || row['Agency team'] || row['Client team'] || row['Team'] || row['Account Name'] || row['Account name'] || 'Unknown',
               amount: Math.abs(amount), // Always use positive amounts
               freelancer: row['Freelancer'] || '',
               category: category,
