@@ -159,7 +159,7 @@ export const Settings: React.FC<SettingsProps> = ({ businessInfo, onSave }) => {
                     id="lut"
                     value={tempInfo.lut}
                     onChange={(e) => setTempInfo({ ...tempInfo, lut: e.target.value })}
-                    placeholder="AD240101234567X"
+                    placeholder="AD240000000000X"
                     className={errors.lut ? 'border-red-500' : ''}
                   />
                   {errors.lut && <p className="text-xs text-red-500">{errors.lut}</p>}

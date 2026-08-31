@@ -16,13 +16,15 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Toaster, toast } from 'sonner';
 
+// Placeholder values only. Configure your real business details via the Settings
+// dialog — they are saved to browser localStorage and never leave your machine.
 const DEFAULT_BUSINESS_INFO: BusinessInfo = {
   name: 'EXAMPLE BUSINESS SERVICES PVT LTD',
   gstin: '24AABCE1234F1Z5',
-  lut: 'AD240101234567X',
+  lut: 'AD240000000000X',
   lutPeriod: {
-    from: '2024-04-01',
-    to: '2025-03-31',
+    from: '2026-04-01',
+    to: '2027-03-31',
   },
   addressLine1: '123, BUSINESS PARK',
   addressLine2: 'TECHNOLOGY HUB',
@@ -146,7 +148,8 @@ export default function Home() {
       });
 
       // Update starting invoice number for next batch
-      const lastInvoiceNumber = businessInfo.startingInvoiceNumbers[selectedInvoiceType.type] + generatedInvoices.length;
+      const lastInvoiceNumber =
+        (businessInfo.startingInvoiceNumbers[selectedInvoiceType.type] ?? 1) + generatedInvoices.length;
       const updatedBusinessInfo = {
         ...businessInfo,
         startingInvoiceNumbers: {

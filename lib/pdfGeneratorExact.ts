@@ -50,10 +50,10 @@ export function generateInvoicePDFExact(invoice: Invoice, businessInfo?: Importe
   const defaultInfo: ImportedBusinessInfo = {
     name: 'EXAMPLE BUSINESS SERVICES PVT LTD',
     gstin: '24AABCE1234F1Z5',
-    lut: 'AD240101234567X',
+    lut: 'AD240000000000X',
     lutPeriod: {
-      from: '2024-04-01',
-      to: '2025-03-31',
+      from: '2026-04-01',
+      to: '2027-03-31',
     },
     addressLine1: '123, BUSINESS PARK',
     addressLine2: 'TECHNOLOGY HUB',
@@ -179,7 +179,7 @@ export function generateInvoicePDFExact(invoice: Invoice, businessInfo?: Importe
       [
         { content: '', styles: { fontSize: 8 } },
         { content: 'Country:', styles: { fontSize: 8, fontStyle: 'bold' } },
-        { content: 'United States', styles: { fontSize: 8, fontStyle: 'bold' } }
+        { content: invoice.country || 'United States', styles: { fontSize: 8, fontStyle: 'bold' } }
       ],
       [
         { content: '', styles: { fontSize: 8 } },
@@ -342,7 +342,7 @@ export function generateInvoicePDFExact(invoice: Invoice, businessInfo?: Importe
       ],
       [
         {
-          content: 'USD',
+          content: invoice.currency || 'USD',
           styles: { fontSize: 8 }
         },
         {

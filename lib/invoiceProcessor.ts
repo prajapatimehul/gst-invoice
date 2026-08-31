@@ -91,7 +91,7 @@ export async function generateInvoiceNumbers(
   defaultLocation: string = 'United States'
 ): Promise<Invoice[]> {
   const invoices: Invoice[] = [];
-  let currentNumber = businessInfo.startingInvoiceNumbers[invoiceType];
+  let currentNumber = businessInfo.startingInvoiceNumbers[invoiceType] ?? 1;
 
   // Determine tax rate based on invoice type
   const getTaxRate = (type: InvoiceType, location: string): number => {

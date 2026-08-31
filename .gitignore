@@ -40,12 +40,21 @@ next-env.d.ts
 .vscode/
 .idea/
 
-# Generated invoices (optional - uncomment if you don't want to track generated PDFs)
-# *.pdf
-
 # Excel files
 *.xls
 *.xlsx
 
 # MacOS
 .DS_Store
+
+# Real financial data — NEVER commit (bank statements, invoices, client info)
+data/
+output/
+CLAUDE.local.md
+
+# Your own generation scripts are private; only the sanitized templates ship.
+scripts/*
+!scripts/templates/
+
+# Generated invoices — never commit real PDFs to a public repo
+*.pdf

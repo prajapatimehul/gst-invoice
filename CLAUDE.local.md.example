@@ -1,0 +1,107 @@
+# <YOUR BUSINESS NAME> — Real Business Details (LOCAL ONLY)
+
+Copy this file to `CLAUDE.local.md` and fill in your real values:
+
+```bash
+cp CLAUDE.local.md.example CLAUDE.local.md
+```
+
+`CLAUDE.local.md` is gitignored. It is the **only** place your real GSTIN, LUT,
+address, bank details, and client names should live. The checked-in `CLAUDE.md`
+stays generic so the repository can be shared publicly.
+
+Claude Code reads this file automatically at the start of a session and uses it
+to fill in every invoice it generates.
+
+---
+
+## Business Info
+
+- **Legal Name**: <as registered on your GST certificate>
+- **Trade Name**: <if different from legal name>
+- **Constitution**: <Proprietorship / Partnership / LLP / Private Limited>
+- **GSTIN**: <15-character GSTIN, e.g. 24AABCE1234F1Z5>
+- **PAN**: <10-character PAN>
+- **Udyam / MSME**: <UDYAM-XX-00-0000000, or "not registered">
+- **Registered Address**: <address line 1>, <address line 2>, <city>, <state> - <pincode>
+- **State / State Code**: <state name> / <2-digit code, e.g. 24 for Gujarat>
+- **Service**: <e.g. IT Consulting and Support Services>
+- **HSN / SAC**: <e.g. 998313>
+- **Website / Email / Phone**: <optional, printed on the invoice if set>
+
+## LUT (required for zero-rated exports without paying IGST)
+
+- **Current LUT ARN**: <ARN from the GST portal, e.g. AD240000000000X>
+- **Filed on**: <DD-MMM-YYYY>
+- **Valid for FY**: <e.g. 2026-27, i.e. 01-Apr-2026 to 31-Mar-2027>
+- **Previous LUT**: <ARN and expiry, for reference on older invoices>
+
+> A LUT is valid for one financial year only. File a fresh LUT each April and
+> update this section — invoices dated after 31-Mar must carry the new ARN.
+
+## Bank Account (for FIRC / realisation matching)
+
+- **Account Name**: <name on the account>
+- **Account Number**: <account number>
+- **IFSC / SWIFT**: <IFSC>, <SWIFT if applicable>
+- **Branch**: <branch, city>
+- **AD Code**: <authorised dealer code, if your bank issued one>
+
+## Invoice Series (update after every batch)
+
+Track the next unused number for each series. Claude Code reads these before
+generating, and you update them afterwards.
+
+| Series | Purpose | Tax treatment | Next number |
+|---|---|---|---|
+| `<PREFIX>-NN` | Export invoices (all platforms + direct) | 0% IGST under LUT | `<PREFIX>-01` |
+| `<PREFIX>L-NN` | Domestic invoices (Indian customers) | CGST+SGST or IGST | `<PREFIX>L-01` |
+| `<PREFIX>-RCM-NN` | Self-invoices for imported services | IGST 18% under RCM | `<PREFIX>-RCM-01` |
+
+- Numbering is **continuous within a financial year**, resets each 1 April.
+- Numbers must be **gapless** — never skip or reuse one. If an invoice is
+  cancelled, keep the number and mark it cancelled.
+- Retired series from previous years: <e.g. GT-22 last used in FY 2025-26>
+
+## Clients
+
+For each recurring client, record what Claude Code needs to build the invoice:
+
+### <Client Name>
+- **Registered address**: <full address as it should appear on the invoice>
+- **Country**: <country>
+- **GSTIN**: <only for Indian customers — determines CGST+SGST vs IGST>
+- **Billing currency**: <USD / EUR / GBP / INR>
+- **Payment rail**: <e.g. bank wire, Wise, platform payout — and the reference
+  format that appears on your bank statement, so payments can be matched>
+- **Invoicing cadence**: <one invoice per transfer / one per month / per milestone>
+- **Purpose code**: <e.g. P0802 for software consultancy, used on the FIRC>
+
+### Platforms
+- **Upwork**: one invoice per end client per month, **gross** amounts
+- **Fiverr**: one invoice per month addressed to Fiverr International Ltd
+- **Direct**: one invoice per agreed billing event
+
+## Imported Services (RCM self-invoices)
+
+Suppliers you buy services from outside India. Each needs a monthly self-invoice
+under Section 31(3)(f) of the CGST Act, with IGST 18% paid in cash and claimed
+back as ITC.
+
+- <Supplier name>, <registered address> — <what you buy>, SAC <code>
+- <e.g. Anthropic PBC — Claude subscription, SAC 998319>
+- <e.g. Upwork Global Inc. — platform fees and Connects, SAC 998599>
+
+## Quarter Status
+
+- **Current financial year**: <e.g. 2026-27>
+- **Last filed quarter**: <e.g. Q1 FY27 (Apr-Jun 2026) — package sent DD-MMM-YYYY>
+- **Next quarter to process**: <e.g. Q2 FY27 (Jul-Sep 2026)>
+- **Outstanding items**: <anything still owed to your CA>
+
+## Accountant / CA
+
+- **Name / Firm**: <name>
+- **Email**: <email>
+- **Filing frequency**: <Monthly GSTR-1 / Quarterly QRMP>
+- **Package format**: <what they expect — invoices, bank statement, expense bills, FIRCs>

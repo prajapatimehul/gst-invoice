@@ -4,6 +4,7 @@ export enum InvoiceType {
   GRC = 'GRC', // Upwork platform fees (Reverse Charge 18% tax)
   DT = 'DT', // Direct export clients (0% tax)
   G = 'G', // Direct clients (Export 0% / Domestic 18% tax)
+  EM = 'EM', // Unified series across all platforms (Export 0% tax)
 }
 
 // Transaction Category for filtering
@@ -51,7 +52,8 @@ export interface Invoice {
   clientGSTIN?: string; // For domestic clients
   clientAddress?: string; // Full client address
   description?: string; // Service description
-  currency: 'USD' | 'INR'; // Invoice currency
+  currency: 'USD' | 'EUR' | 'INR'; // Invoice currency
+  country?: string; // Buyer country printed on the invoice (defaults to United States)
 }
 
 export interface BusinessInfo {
@@ -77,13 +79,9 @@ export interface BusinessInfo {
   service: string;
   hsn: string;
 
-  // Invoice Configuration
-  startingInvoiceNumbers: {
-    GT: number;
-    GRC: number;
-    DT: number;
-    G: number;
-  };
+  // Invoice Configuration — next number to use for each series.
+  // Optional per series so settings saved before a series existed still load.
+  startingInvoiceNumbers: Partial<Record<InvoiceType, number>>;
 
   // Exchange Rate
   manualExchangeRate?: number; // Optional manual USD to INR exchange rate

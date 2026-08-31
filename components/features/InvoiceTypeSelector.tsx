@@ -55,6 +55,12 @@ const invoiceTypeDescriptions: Record<InvoiceType, {
     categories: [],
     taxInfo: 'Export: 0% | Domestic: 18% IGST',
   },
+  [InvoiceType.EM]: {
+    label: 'EM - Unified Export Series',
+    description: 'One chronological series for all platforms and direct export clients',
+    categories: [TransactionCategory.CLIENT_EARNING],
+    taxInfo: '0% IGST (Export under LUT)',
+  },
 };
 
 export const InvoiceTypeSelector: React.FC<InvoiceTypeSelectorProps> = ({
@@ -107,6 +113,15 @@ export const InvoiceTypeSelector: React.FC<InvoiceTypeSelectorProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="font-medium">G</span>
                   <span>- General Direct Clients</span>
+                </div>
+              </SelectItem>
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>Unified Series</SelectLabel>
+              <SelectItem value={InvoiceType.EM}>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">EM</span>
+                  <span>- All Platforms (Export)</span>
                 </div>
               </SelectItem>
             </SelectGroup>

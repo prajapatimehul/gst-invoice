@@ -1,386 +1,313 @@
-# GST Invoice System - Project Guide
+# GST Invoice Generator — Guide for Claude Code
 
-## Business Info
-- **Name**: EXAMPLE BUSINESS SERVICES PVT LTD
-- **GSTIN**: 24AABCE1234F1Z5 (Configure in Settings)
-- **LUT**: AD240101234567X (Export without IGST)
-- **Service**: IT Consulting (HSN/SAC: 998313)
-- **State**: Gujarat (Code: 24)
+This repository generates **GST-compliant invoices for Indian freelancers and
+small service businesses** — zero-rated exports under LUT, domestic taxable
+invoices, and reverse-charge self-invoices for imported services.
 
----
+It is designed to be driven by Claude Code. You describe a quarter's billing;
+Claude Code reads your private config, writes a generation script, and produces
+the PDFs your accountant needs.
 
-## Invoice Series
-
-### DT-Series (Direct Clients)
-- **Format**: DT-01, DT-02, DT-03...
-- **Location**: `invoices/direct-clients/`
-- **Starting**: DT-01
-
-### GT-Series (Upwork Clients)
-- **Format**: GT-01, GT-02, GT-03...
-- **Location**: `invoices/upwork-clients/`
-- **Numbering**: Continuous throughout the year (configurable starting number)
-
-### 📋 Invoice Numbering
-- **GT-series continues throughout the year** (no quarterly reset)
-- **Configurable starting number** in app settings
-- Example: If you set starting number to 13, invoices will be GT-13, GT-14, GT-15...
-- Track the last used number and set it as starting number for next batch
-- **Sequential numbering** ensures no gaps in invoice series
+> **This file is public and contains no real business data.** Every value below
+> is a placeholder. Real details live in `CLAUDE.local.md`, which is gitignored.
 
 ---
 
-## Key Rules
+## 🚨 Rules for Claude Code — read before doing anything
+
+1. **Read `CLAUDE.local.md` first.** It holds the user's real GSTIN, LUT, address,
+   invoice series counters, and client list. If it does not exist, tell the user
+   to run `cp CLAUDE.local.md.example CLAUDE.local.md` and fill it in. **Never
+   invent or guess** a GSTIN, LUT number, address, or invoice number.
+
+2. **Never commit real financial data.** `data/`, `output/`, `scripts/*` (except
+   `scripts/templates/`), `CLAUDE.local.md`, and `*.pdf` are gitignored and must
+   stay that way. Before any commit, check the staged diff for GSTINs, LUT ARNs,
+   bank account numbers, client names, and personal addresses.
+
+3. **Never renumber or reuse an invoice number.** GST requires a gapless,
+   sequential series. If an invoice is wrong, cancel it and issue a new number —
+   do not silently regenerate over it. Confirm the next number with the user
+   before generating a batch, and remind them to update `CLAUDE.local.md` after.
+
+4. **Never round or "clean up" an amount.** Invoice values must match the source
+   documents (platform CSV, bank statement, contract) exactly.
+
+5. **Ask when the source data is ambiguous.** A missing exchange rate, an
+   unmatched bank credit, or an unclear client address is a question for the
+   user, not something to fill in with a plausible value.
+
+---
+
+## Two ways to use this project
+
+### 1. Web app — Upwork CSVs, bulk export invoices
+
+A Next.js app that runs entirely in the browser. Best for the common case: a
+month or quarter of Upwork earnings turned into one invoice per client per month.
+
+```bash
+npm install
+npm run dev          # http://localhost:3000
+```
+
+Configure business details via **Settings** (saved to browser `localStorage`,
+never sent anywhere), upload the Upwork transaction CSV, preview, download PDFs.
+
+### 2. Script workflow — everything else
+
+For anything the UI does not cover — domestic invoices, RCM self-invoices,
+non-USD currencies, per-transfer invoicing, mixed platforms in one series —
+Claude Code writes a per-quarter TypeScript script that reuses the same PDF
+generator and helpers.
+
+```bash
+npx tsx scripts/generate-<quarter>.ts
+```
+
+Start from a template in `scripts/templates/` (see below). Your own scripts in
+`scripts/` stay local and gitignored.
+
+---
+
+## Repository layout
+
+```
+├── app/                     # Next.js App Router pages
+├── components/
+│   ├── features/            # Settings, FileUpload, InvoicePreview, InvoiceSummary
+│   └── ui/                  # Shadcn UI primitives
+├── lib/
+│   ├── csvParser.ts         # Parse Upwork transaction CSV
+│   ├── invoiceProcessor.ts  # Group by client+month, assign invoice numbers
+│   ├── exchangeRateMulti.ts # Fetch a rate per invoice date
+│   ├── pdfGeneratorExact.ts # Traditional GST invoice PDF (use this one)
+│   ├── pdfGeneratorAdvanced.ts / pdfGenerator.ts  # Alternate layouts
+│   └── utils.ts             # numberToIndianWords, formatInvoiceDate
+├── types/invoice.ts         # Invoice, BusinessInfo, InvoiceType
+├── scripts/templates/       # ✅ Sanitized starting points (committed)
+├── scripts/                 # 🔒 Your real per-quarter scripts (gitignored)
+├── data/                    # 🔒 Source documents (gitignored)
+├── output/                  # 🔒 Generated PDFs (gitignored)
+├── CLAUDE.md                # 📖 This file — public, generic
+└── CLAUDE.local.md          # 🔒 Your real business details (gitignored)
+```
+
+### Per-quarter convention
+
+Keep one folder per quarter so a filing can be reconstructed later:
+
+```
+data/<quarter>/              # e.g. data/apr-jun-2026/
+├── <platform>-transactions.csv
+├── bank-statement.xlsx
+├── rbi-rates-<quarter>.json     # RBI reference rates you looked up
+├── firc/                        # e-FIRCs / BRCs from your bank
+├── expense-bills/               # supplier invoices backing RCM self-invoices
+└── client-docs/                 # customer GST certificates, contracts
+
+scripts/generate-<quarter>.ts    # the script that built this quarter
+output/<quarter>/                # the PDFs it produced + a summary CSV
+```
+
+---
+
+## Invoice series
+
+Series prefixes are **your choice** — record them in `CLAUDE.local.md`. The
+recommended structure is one series per tax treatment:
+
+| Series | Covers | Tax treatment |
+|---|---|---|
+| `<PREFIX>-NN` | All export invoices (platforms + direct foreign clients) | 0% IGST, zero-rated under LUT |
+| `<PREFIX>L-NN` | Domestic invoices to Indian customers | CGST+SGST (same state) or IGST (other state) |
+| `<PREFIX>-RCM-NN` | Self-invoices for services imported from abroad | IGST 18% under reverse charge |
+
+Rules that apply to every series:
+
+- **Continuous within a financial year**, reset on 1 April. A fresh series each
+  FY is compliant as long as the GSTIN is unchanged.
+- **Gapless and sequential.** No skipped numbers, no reuse.
+- **Numbers are issued in date order.** If you issue an invoice early (for a
+  compliance request, say), later invoices dated *before* it still take *higher*
+  numbers — the number is already spent.
+
+The web app also ships legacy prefixes in `types/invoice.ts` (`GT` Upwork
+earnings, `GRC` Upwork platform fees, `DT` direct export, `G` direct,
+`EM` unified). Use these or define your own in a script.
+
+---
+
+## GST rules the invoices must satisfy
+
+### Export invoices (zero-rated under LUT)
+
+- **IGST rate 0%**, tax amount NIL, supplied under a valid LUT for that FY.
+- Header must carry the export declaration: *"SUPPLY MEANT FOR EXPORT UNDER LETTER
+  OF UNDERTAKING WITHOUT PAYMENT OF INTEGRATED TAX"*.
+- The LUT ARN printed must be the one valid on the **invoice date** — an invoice
+  dated 02-Apr uses the new FY's LUT, not last year's.
+- Show both the foreign-currency amount and the INR equivalent, with the
+  exchange rate and its date.
+
+### Domestic invoices (taxable)
+
+- Customer in the **same state** as you → **CGST 9% + SGST 9%**.
+- Customer in a **different state** → **IGST 18%**.
+- Print the customer's GSTIN and place of supply. B2B invoices without a
+  customer GSTIN cannot be claimed as ITC by the customer.
+
+### RCM self-invoices (imported services)
+
+- Required under **Section 31(3)(f) of the CGST Act** when you buy services from
+  a supplier outside India (cloud subscriptions, platform fees, ads, SaaS).
+- **IGST 18% payable in cash**, then claimable as input tax credit.
+- One self-invoice per supplier per month, in its own series.
+- Convert the foreign value at the RBI reference rate on the self-invoice date
+  (Rule 34).
+- Keep the supplier's invoice PDF in `data/<quarter>/expense-bills/` as backing.
 
 ### Amounts
-- **USE GROSS AMOUNTS** - The full billing amount before platform fees
-- For Upwork: Use the gross earnings (NOT the net received amount)
-- Example: $1,600 gross = Invoice shows $1,600 (not $1,438.40 after fees)
-- Direct clients: Full invoiced amount
 
-### One Invoice Per Client Per Month
-- Each client gets ONE invoice per month
-- Combine all work done for that client in the month
-- Use month-end date or last work date as invoice date
-- Track monthly totals per client
+- **Always use GROSS amounts** — the full value of the service before platform
+  fees or withholding. Upwork showing `$1,600 gross / $1,438.40 net` means the
+  invoice reads **$1,600**. The platform fee is a separate expense (and the
+  subject of its own RCM self-invoice).
+- Direct clients: the full invoiced amount.
 
-### Exchange Rates ⭐ UPDATED
+### Dates and formats
 
-**🚨 CRITICAL FOR GST COMPLIANCE**: Each invoice must use the exchange rate for its specific invoice date!
-
-#### NEW: Per-Invoice-Date Exchange Rates
-
-The app now automatically fetches the correct exchange rate for EACH invoice's date:
-
-**Example (Multi-Month CSV):**
-- ABC Inch - July (Jul 25, 2025) → Uses rate for Jul 25
-- ABC Inch - August (Aug 29, 2025) → Uses rate for Aug 29
-- XYZ LLC - September (Sep 5, 2025) → Uses rate for Sep 5
-
-#### Two Modes:
-
-**1. Manual Mode** (Recommended for Single-Month Batches)
-- Enter ONE exchange rate in settings
-- All invoices in batch use this rate
-- Best for processing one month at a time
-- Verify rate from [RBI Reference Rate Archive](https://www.rbi.org.in/scripts/referenceratearchive.aspx)
-
-**2. Auto Mode** (For Multi-Month CSVs)
-- Leave exchange rate field empty
-- App automatically fetches rate FOR EACH invoice date
-- Uses frankfurter.app API (European Central Bank data)
-- ⚠️ **Note**: NOT official RBI rates, but close approximation
-- Each invoice gets its own date-specific rate
-
-#### RBI vs API Rates
-
-**RBI Limitation:**
-- ❌ No public API available from RBI or FBIL
-- ✅ Official source: Manual download from RBI website
-- ✅ For strict GST compliance: Download RBI rates, process month-by-month with manual entry
-
-**frankfurter.app API:**
-- ✅ Automated per-date fetching
-- ✅ Based on European Central Bank data
-- ⚠️ Close approximation but NOT official RBI rates
-- ✅ Suitable for multi-month processing
+- Invoice date format: **DD-MMM-YY** (e.g. `26-Jul-26`), via `formatInvoiceDate()`.
+- Amount in words: Indian numbering (lakh/crore), via `numberToIndianWords()`.
+- One invoice per client per month for platform work, dated the month-end or the
+  last work date. Per-transfer invoicing is also valid — pick one and stay
+  consistent per client.
 
 ---
 
-## File Structure
-```
-invoice-app/                     # 🏠 Main application (ROOT)
-├── app/                         # Next.js app pages
-├── components/                  # UI components
-│   ├── features/                # Feature components
-│   └── ui/                      # Shadcn UI components
-├── lib/                         # Core business logic
-│   ├── csvParser.ts             # Parse Upwork CSV
-│   ├── invoiceProcessor.ts      # Generate invoices with per-date rates
-│   ├── exchangeRateMulti.ts     # Fetch exchange rates per invoice date
-│   ├── pdfGeneratorExact.ts     # Generate PDF invoices
-│   └── utils.ts                 # Utility functions
-├── types/                       # TypeScript type definitions
-├── public/                      # Static assets
-├── BankWise.xls                 # Exchange rate reference (historical)
-├── Refernce/                    # Reference invoices (read-only)
-├── Template/                    # Legacy Excel templates
-├── CLAUDE.md                    # 📖 This file - Project documentation
-├── package.json                 # Dependencies
-└── next.config.js               # Next.js configuration
+## Exchange rates
 
-../                              # Parent directory (legacy Python tools)
-├── generate_invoice.py          # Legacy: Python invoice generator
-├── parse_upwork_report.py       # Legacy: Python CSV parser
-└── invoices/                    # Legacy: Old generated invoices
+**Each invoice must use the exchange rate for its own invoice date.** A batch
+spanning three months needs three different rates.
+
+### RBI reference rate — official, use for filings
+
+The [RBI Reference Rate Archive](https://www.rbi.org.in/scripts/referenceratearchive.aspx)
+is the authoritative source. There is **no public RBI API** — rates are looked up
+manually and cached as JSON in `data/<quarter>/rbi-rates-<quarter>.json`:
+
+```json
+{
+  "2026-07-09": { "USD": 95.3746 },
+  "2026-07-27": { "USD": 96.1856, "EUR": 101.2233 }
+}
 ```
 
-## Next.js Web App (invoice-app/)
+RBI publishes on business days only. For an invoice dated on a **weekend or
+holiday**, use the **nearest preceding business day's** rate and record that
+substitution in a note on the script — your accountant will be asked about it.
 
-### Features
-- 🎨 **Modern UI** - Beautiful Notion-like interface
-- 📤 **Drag & Drop** - Easy CSV upload
-- ⚙️ **Configurable Settings** - Business info & starting invoice number
-- 👁️ **Live Preview** - Preview invoices before download
-- 📄 **Batch Processing** - One invoice per client per month
-- 💾 **Client-side** - All processing in browser (zero-cost hosting)
+### frankfurter.app — automatic, approximate
 
-### Configuration (Settings Button)
-1. **Business Details**
-   - Name, GSTIN, LUT
-   - Service description, HSN/SAC
-   - State and State Code
-2. **Starting Invoice Number**
-   - Set the first invoice number for the batch
-   - Example: Set to 13 to generate GT-13, GT-14, GT-15...
-   - Update this number after each batch to continue sequence
-3. **Exchange Rate (Optional)**
-   - **Single Month Processing**: Check [RBI official rates](https://www.rbi.org.in/scripts/referenceratearchive.aspx) and enter manually
-   - **Multi-Month Processing**: Leave empty - app fetches rate for EACH invoice date automatically
-   - **Manual = One rate for all invoices in batch**
-   - **Auto = Per-invoice-date rates from API**
-   - App shows exchange rate used for each invoice in the list
+`lib/exchangeRateMulti.ts` fetches a per-date rate from
+[frankfurter.app](https://frankfurter.app) (European Central Bank data) when no
+manual rate is set. Convenient for multi-month batches, but **not official RBI
+rates**. For a filing that has to withstand scrutiny, use RBI rates.
 
-### Usage
+In the web app: enter a rate in Settings to apply one rate to the whole batch;
+leave it empty for automatic per-date fetching.
+
+---
+
+## Upwork CSV mapping
+
+Export from **Upwork → Reports → Transactions** as CSV.
+
+| Invoice field | CSV column | Notes |
+|---|---|---|
+| Client name | `Agency` | Falls back to `Account Name` when empty |
+| Amount | `Amount` / `Amount $` | Gross, before fees |
+| Date | `Date` | Drives grouping and the exchange-rate lookup |
+
+- Only **client earnings** rows become export invoices: `Hourly`, `Fixed Price`,
+  `Fixed-price`, `Milestone`, `Bonus`.
+- **Platform fee** rows (`Connects`, `Subscription`, `Service Fee`, withdrawal
+  fees) are *not* revenue — they belong on an RCM self-invoice.
+- Upwork renames these columns periodically. If parsing yields `Unknown` clients
+  or zero rows, inspect the CSV header and update `lib/csvParser.ts`.
+
+---
+
+## Generating a quarter — the recipe
+
+When the user asks for a quarter's invoices, work through this in order:
+
+1. **Read `CLAUDE.local.md`** — business details, next invoice numbers, clients,
+   LUT valid for the quarter's dates.
+2. **Inventory `data/<quarter>/`** — list what source documents are present and
+   tell the user what is missing before starting.
+3. **Reconcile revenue against the bank statement.** Every credit should map to
+   an invoice, and every invoice to a credit (or an explained timing difference).
+   Report anything unmatched instead of quietly dropping it.
+4. **Collect exchange rates.** Ask the user to look up RBI rates for each
+   distinct invoice date and save them to `data/<quarter>/rbi-rates-<quarter>.json`.
+   Flag weekend/holiday dates that need the preceding business day.
+5. **Assign invoice numbers** in date order, continuing from `CLAUDE.local.md`.
+   Show the user the full mapping and get confirmation before generating.
+6. **Write `scripts/generate-<quarter>.ts`** from the matching template. Keep the
+   invoice data as a plain array at the top so it is reviewable at a glance.
+7. **Run it** — `npx tsx scripts/generate-<quarter>.ts` — writing PDFs plus a
+   summary CSV to `output/<quarter>/`.
+8. **Verify** totals against the source documents, then hand over the summary.
+9. **Remind the user** to update the next invoice numbers in `CLAUDE.local.md`.
+
+Separately, generate RCM self-invoices for the quarter's imported services from
+the bills in `data/<quarter>/expense-bills/`.
+
+---
+
+## Script templates
+
+`scripts/templates/` holds sanitized starting points. Copy one, do not edit it
+in place:
+
 ```bash
-# From invoice-app directory (project root)
-npm install
-npm run dev
-# Open http://localhost:3000 or http://localhost:3001
+cp scripts/templates/export-invoices.template.ts scripts/generate-apr-jun-2027.ts
 ```
 
-1. Click **Settings** button to configure
-2. Set **Starting Invoice Number** (e.g., last used + 1)
-3. **Upload CSV** - Drag & drop Upwork transaction report
-4. **Preview** - Click any invoice to preview
-5. **Download** - Download individual or all PDFs
+| Template | Produces |
+|---|---|
+| `export-invoices.template.ts` | Zero-rated export invoices under LUT, multi-currency, per-date RBI rates |
+| `domestic-invoice.template.ts` | Domestic taxable invoice with CGST+SGST or IGST |
+| `rcm-self-invoice.template.ts` | Reverse-charge self-invoices for imported services |
 
-### Deployment
-Deploy to Vercel for free:
-```bash
-# From invoice-app directory
-vercel
-# Follow prompts to deploy
-```
+Each is filled with obvious placeholders (`<YOUR ...>`, `PLACEHOLDER`) and
+throws at startup if they have not been replaced.
 
 ---
 
-## Invoice Format
+## Compliance checklist
 
-### Required Fields
-- Invoice Number (DT-XX or GT-XX)
-- Invoice Date (DD-MMM-YYYY)
-- Client Name + " - Upwork" (for Upwork clients)
-- Client Location + Country
-- Service: "IT Consulting and Support Services"
-- USD Amount (GROSS)
-- Exchange Rate
-- INR Amount = USD × Rate
-- Amount in Indian words
-- GSTIN, LUT, HSN/SAC codes
+Before handing a batch to an accountant:
 
-### Tax Details
-- IGST Rate: 0% (Export under LUT)
-- Tax Amount: NIL
-- Header: "SUPPLY MEANT FOR EXPORT..."
+- [ ] GSTIN correct and matching the registration certificate
+- [ ] LUT ARN valid for every invoice date in the batch
+- [ ] Invoice numbers sequential and gapless within the financial year
+- [ ] HSN/SAC present on every line
+- [ ] Export invoices: 0% IGST + export declaration header
+- [ ] Domestic invoices: correct CGST+SGST vs IGST split, customer GSTIN shown
+- [ ] RCM self-invoices issued for every imported service in the period
+- [ ] Gross amounts used, not net-of-fees
+- [ ] Exchange rate and its date shown on every foreign-currency invoice
+- [ ] Amount in words matches the numeric total
+- [ ] Totals reconcile to the bank statement
+- [ ] Nothing real staged for commit (`git diff --cached`)
 
 ---
 
-## Workflow
+## Disclaimer
 
-### Direct Client Invoice
-```bash
-python3 generate_invoice.py \
-  --type DT \
-  --client "Client Name" \
-  --location "City, Country" \
-  --amount 5000 \
-  --date "15-Oct-2025"
-```
-
-### Upwork Invoices (Monthly Batch)
-```bash
-python3 parse_upwork_report.py upwork_report.csv --monthly
-```
-This generates one invoice per client per month automatically.
-
-### Manual Upwork Invoice
-```bash
-python3 generate_invoice.py \
-  --type GT \
-  --client "Client Name - Upwork" \
-  --location "United States" \
-  --amount 3200 \
-  --date "31-Jul-2025"
-```
-
----
-
-## PDF Generation
-
-### Current Method (LibreOffice)
-- Uses LibreOffice headless mode
-- Command: `soffice --headless --convert-to pdf`
-- Works but may have formatting differences from Excel
-
-### Goal: Google Sheets Parity
-- PDF should look exactly like Google Sheets export
-- Need to ensure:
-  - Same fonts and sizes
-  - Proper alignment
-  - Correct margins
-  - No extra spacing
-  - Clean borders
-
-### Options to Explore
-1. **Excel native export** (requires Excel on Mac)
-2. **Google Sheets API** (upload → export as PDF)
-3. **Improved LibreOffice settings** (better page setup)
-4. **Python PDF libraries** (render from Excel data)
-
----
-
-## CA Submission Package
-
-### Monthly/Quarterly Includes:
-1. **Sales Invoices**
-   - All DT-series PDFs (direct clients)
-   - All GT-series PDFs (Upwork)
-
-2. **Supporting Documents**
-   - Bank statements (USD receipts)
-   - Exchange rate references
-
-3. **Summary Report**
-   - Total income (USD + INR)
-   - Invoice list with dates
-   - Client breakdown
-
----
-
-## Commands
-
-### Generate Invoice
-```bash
-# Interactive mode
-python3 generate_invoice.py
-
-# Direct client
-python3 generate_invoice.py --type DT --client "ABC" --amount 5000
-
-# Upwork client
-python3 generate_invoice.py --type GT --client "XYZ - Upwork" --amount 3000
-```
-
-### Parse Upwork Report
-```bash
-# Monthly invoices (one per client per month)
-python3 parse_upwork_report.py report.csv --monthly
-
-# Per-transaction invoices (not recommended)
-python3 parse_upwork_report.py report.csv
-```
-
-### Convert Excel to PDF
-```bash
-# Single file
-python3 generate_invoice.py --convert invoices/direct-clients/DT-01.xlsx
-
-# Batch convert
-for file in invoices/upwork-clients/*.xlsx; do
-    python3 generate_invoice.py --convert "$file"
-done
-```
-
----
-
-## Important Notes
-
-### Upwork Amount Calculation
-- ⚠️ Always use GROSS amount (before Upwork fees)
-- Upwork shows: Gross, Service Fee, WHT, Net
-- Invoice uses: Gross amount only
-- Your bank receives: Net amount
-- CA needs to know: Gross = service value provided
-
-### Yearly Sequential Numbering
-- ⚠️ Invoice numbers CONTINUE throughout the year (no quarterly reset)
-- **Configurable starting number** - Set in app settings before generating invoices
-- No gaps in invoice numbers
-- Track last used number and use it as starting number for next batch
-- GT-series: Continuous sequence (e.g., GT-01, GT-02... GT-50, GT-51...)
-- **Example for a year**:
-  - January: GT-01, GT-02, GT-03
-  - February: GT-04, GT-05, GT-06 (continues from previous month)
-  - March: GT-07, GT-08, GT-09 (continues sequentially)
-  - ...and so on throughout the year
-
-### Date Format
-- Always use: DD-MMM-YYYY
-- Example: 15-Oct-2025, 04-Jul-25
-
-### Client Names
-- **Upwork CSV**: Uses "Agency" column for actual client company names (e.g., "ABC Inc", "XYZ LLC")
-- **Invoice Display**: Automatically appends " - Upwork" suffix to client names
-- **Example**: "ABC Inch - Upwork"
-- Direct clients: Use actual company name
-- Keep consistent across months
-
-### Upwork CSV Field Mapping
-- **Client Name**: Uses "Agency" field (not "Account Name")
-- **Amount**: Uses "Amount $" field (gross amount before fees)
-- **Transaction Types**: Only "Hourly" and "Fixed-price" transactions are processed
-- **Grouping**: One invoice per client per month based on transaction dates
-
----
-
-## Compliance Checklist
-
-- ✅ GSTIN: Configure your GSTIN in Settings
-- ✅ LUT No: Configure your LUT number in Settings
-- ✅ HSN/SAC: 998313
-- ✅ IGST Rate: 0%
-- ✅ Export header text
-- ✅ Currency conversion documented
-- ✅ Sequential invoice numbers
-- ✅ Gross amounts (not net)
-
----
-
-## Development Tasks
-
-- [ ] Improve PDF generation (Google Sheets quality)
-- [ ] Add invoice tracking database
-- [ ] Auto-detect last invoice number
-- [ ] Validate GSTIN format
-- [ ] Summary report generator
-- [ ] Backup system
-
----
-
-**Last Updated**: October 13, 2025
-
----
-
-## Quick Start (Web App)
-
-1. **Open the app**: `npm run dev` (from invoice-app directory)
-2. **Configure settings** (first time):
-   - Click Settings button
-   - Set Starting Invoice Number (e.g., 1 for first batch, 13 for continuing)
-   - **Optional**: Enter Exchange Rate
-     - **For Single Month**: Enter RBI rate from [RBI website](https://www.rbi.org.in/scripts/referenceratearchive.aspx)
-     - **For Multi-Month CSV**: Leave empty - app will fetch rate per invoice date
-   - Save settings
-3. **Generate invoices**:
-   - Upload Upwork transaction CSV (can span multiple months)
-   - App automatically:
-     - Uses "Agency" field for client company names
-     - Groups by client and month (one invoice per client per month)
-     - **Fetches correct exchange rate for EACH invoice date** (if manual rate not set)
-   - Review generated invoices - each shows its specific exchange rate
-   - Preview any invoice before download
-   - Download all PDFs at once
-4. **For next batch**:
-   - Update starting number to last invoice number + 1
-   - Update/remove exchange rate as needed
+This project generates documents from data you supply. It is not tax advice, and
+the maintainers are not accountants. GST rules change. **Have your invoices
+reviewed by a qualified chartered accountant before filing.** You are
+responsible for the accuracy of everything you file.

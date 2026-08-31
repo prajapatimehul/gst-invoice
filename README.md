@@ -48,12 +48,29 @@ npm start
 
 ## Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/invoice-app)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/prajapatimehul/gst-invoice)
 
 1. Push this code to a GitHub repository
 2. Connect your GitHub repo to Vercel
 3. Click "Deploy"
 4. Your app will be live in minutes!
+
+## 🤖 Use with Claude Code
+
+The web app covers Upwork CSVs. For everything else — domestic invoices, reverse-charge
+self-invoices for imported services, non-USD currencies, per-transfer invoicing — drive
+this repo with [Claude Code](https://claude.com/claude-code).
+
+```bash
+cp CLAUDE.local.md.example CLAUDE.local.md   # then fill in your real details
+claude
+```
+
+`CLAUDE.local.md` is gitignored and is the only place your real GSTIN, LUT, address,
+bank details, and client names live. [CLAUDE.md](./CLAUDE.md) tells Claude Code how to
+read it, which GST rules apply, how to source exchange rates, and how to generate a
+quarter end to end. Copy a starting point from
+[`scripts/templates/`](./scripts/templates/) and Claude Code fills in the rest.
 
 ## 📖 How to Use
 
@@ -129,8 +146,8 @@ invoice-app/                     # 🏠 Main application (ROOT)
 ├── components/
 │   ├── ui/                      # Shadcn UI components
 │   └── features/                # Feature components
-│       ├── FreelancerConfig.tsx # Settings dialog
-│       ├── InvoiceGenerator.tsx # Main generator UI
+│       ├── Settings.tsx         # Business details dialog
+│       ├── FileUpload.tsx       # CSV drag & drop
 │       ├── InvoicePreview.tsx   # PDF preview modal
 │       └── InvoiceSummary.tsx   # Generated invoices list
 ├── lib/                         # Core business logic
@@ -141,11 +158,12 @@ invoice-app/                     # 🏠 Main application (ROOT)
 │   └── utils.ts                 # Utility functions (date, number formatting)
 ├── types/
 │   └── invoice.ts               # TypeScript type definitions
-├── public/                      # Static assets
-├── Refernce/                    # Reference invoices (for format matching)
-├── Template/                    # Legacy Excel templates
-├── BankWise.xls                 # Historical exchange rates reference
-├── CLAUDE.md                    # 📖 Comprehensive project documentation
+├── scripts/templates/           # ✅ Sanitized script templates (committed)
+├── scripts/                     # 🔒 Your own generation scripts (gitignored)
+├── data/                        # 🔒 Source documents (gitignored)
+├── output/                      # 🔒 Generated PDFs (gitignored)
+├── CLAUDE.md                    # 📖 Guide for Claude Code — public, generic
+├── CLAUDE.local.md              # 🔒 Your real business details (gitignored)
 ├── README.md                    # This file
 ├── package.json                 # Dependencies
 └── next.config.js               # Next.js configuration
@@ -210,9 +228,9 @@ CSV with Jul, Aug, Sep transactions:
 
 ## 📚 Additional Resources
 
-- **[CLAUDE.md](./CLAUDE.md)** - Comprehensive project documentation
-- **[Refernce/](./Refernce/)** - Reference invoice PDFs
-- **[Template/](./Template/)** - Legacy Excel templates
+- **[CLAUDE.md](./CLAUDE.md)** - Full guide, including the Claude Code workflow
+- **[CLAUDE.local.md.example](./CLAUDE.local.md.example)** - Template for your private business details
+- **[scripts/templates/](./scripts/templates/)** - Export, domestic, and RCM script templates
 - **[RBI Reference Rates](https://www.rbi.org.in/scripts/referenceratearchive.aspx)** - Official exchange rates
 
 ---
@@ -223,8 +241,9 @@ MIT License - Feel free to use and modify for your purposes.
 
 ---
 
-## 👤 Author
+## ⚠️ Disclaimer
 
-Built for **MEHULKUMAR SHANTIBHAI PRAJAPATI**
-
-**Last Updated**: October 13, 2025
+This project generates documents from data you supply. It is not tax advice, and
+the maintainers are not accountants. GST rules change. **Have your invoices
+reviewed by a qualified chartered accountant before filing.** You are
+responsible for the accuracy of everything you file.

@@ -78,11 +78,13 @@ export function formatInvoiceDate(date: Date): string {
   return `${day}-${month}-${year}`;
 }
 
-// Business information constant
+// Placeholder business information — used only as a fallback when no business
+// info has been configured in Settings. Configure your real details in the app
+// (they are stored in browser localStorage) or in CLAUDE.local.md for scripts.
 export const BUSINESS_INFO = {
-  name: 'MEHULKUMAR SHANTIBHAI PRAJAPATI',
-  gstin: 'XX-XXXXX-XXXX-X-XX',
-  lut: 'ADXXXXXXXXXXXXXXXXX',
+  name: 'EXAMPLE BUSINESS SERVICES PVT LTD',
+  gstin: '24AABCE1234F1Z5',
+  lut: 'AD240000000000X',
   service: 'IT Consulting and Support Services',
   hsn: '998313',
   state: 'Gujarat',
